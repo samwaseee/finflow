@@ -3,7 +3,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, ChevronDown } from "lucide-react";
+import { Plus, Trash2, ChevronDown, Download } from "lucide-react";
 
 type InvoiceItem = {
   id: string;
@@ -38,16 +38,16 @@ type LineItem = {
 const emptyItem: LineItem = { description: "", quantity: 1, unitPrice: 0 };
 
 const STATUS_STYLES: Record<string, string> = {
-  DRAFT:   "bg-gray-100 text-gray-600",
-  SENT:    "bg-blue-100 text-blue-700",
-  PAID:    "bg-green-100 text-green-700",
+  DRAFT: "bg-gray-100 text-gray-600",
+  SENT: "bg-blue-100 text-blue-700",
+  PAID: "bg-green-100 text-green-700",
   OVERDUE: "bg-red-100 text-red-600",
 };
 
 const STATUS_FLOW: Record<string, string[]> = {
-  DRAFT:   ["SENT"],
-  SENT:    ["PAID", "OVERDUE"],
-  PAID:    [],
+  DRAFT: ["SENT"],
+  SENT: ["PAID", "OVERDUE"],
+  PAID: [],
   OVERDUE: ["PAID"],
 };
 
@@ -173,11 +173,10 @@ export default function InvoicesPage() {
           <button
             key={s}
             onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              filter === s
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${filter === s
                 ? "bg-white text-gray-900 shadow-sm"
                 : "text-gray-500 hover:text-gray-700"
-            }`}
+              }`}
           >
             {s}
           </button>
@@ -265,159 +264,181 @@ export default function InvoicesPage() {
                       </button>
                     </div>
                   </td>
+                  <td className="px-5 py-4">
+                    <div className="flex justify-end gap-2">
+                      <a
+                      href={`/api/invoices/${inv.id}/pdf`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                      title="Download PDF"
+    >
+                      <Download size={14} />
+                    </a>
+                    <button
+                      onClick={() => handleDelete(inv.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
+          </tbody>
+        </table>
         </div>
-      )}
+  )
+}
 
-      {/* Create modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-5">New invoice</h2>
+{/* Create modal */ }
+{
+  modalOpen && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-5">New invoice</h2>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Client + due date */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Client <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={clientId}
-                    onChange={(e) => setClientId(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Select a client</option>
-                    {clients.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Due date <span className="text-red-500">*</span>
-                  </label>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Client + due date */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Client <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Select a client</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Due date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Line items */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-gray-700">
+                Line items <span className="text-red-500">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={addItem}
+                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+              >
+                + Add item
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {/* Column headers */}
+              <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-400 px-1">
+                <div className="col-span-6">Description</div>
+                <div className="col-span-2">Qty</div>
+                <div className="col-span-3">Unit price</div>
+                <div className="col-span-1" />
+              </div>
+
+              {items.map((item, i) => (
+                <div key={i} className="grid grid-cols-12 gap-2 items-center">
                   <input
-                    type="date"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="col-span-6 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Web design services"
+                    value={item.description}
+                    onChange={(e) => updateItem(i, "description", e.target.value)}
                     required
                   />
-                </div>
-              </div>
-
-              {/* Line items */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-700">
-                    Line items <span className="text-red-500">*</span>
-                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    className="col-span-2 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={item.quantity}
+                    onChange={(e) => updateItem(i, "quantity", Number(e.target.value))}
+                    required
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    className="col-span-3 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="0.00"
+                    value={item.unitPrice}
+                    onChange={(e) => updateItem(i, "unitPrice", Number(e.target.value))}
+                    required
+                  />
                   <button
                     type="button"
-                    onClick={addItem}
-                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                    onClick={() => removeItem(i)}
+                    disabled={items.length === 1}
+                    className="col-span-1 flex justify-center p-1.5 text-gray-400 hover:text-red-500 disabled:opacity-20"
                   >
-                    + Add item
+                    <Trash2 size={14} />
                   </button>
                 </div>
+              ))}
+            </div>
 
-                <div className="space-y-2">
-                  {/* Column headers */}
-                  <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-400 px-1">
-                    <div className="col-span-6">Description</div>
-                    <div className="col-span-2">Qty</div>
-                    <div className="col-span-3">Unit price</div>
-                    <div className="col-span-1" />
-                  </div>
-
-                  {items.map((item, i) => (
-                    <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                      <input
-                        className="col-span-6 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Web design services"
-                        value={item.description}
-                        onChange={(e) => updateItem(i, "description", e.target.value)}
-                        required
-                      />
-                      <input
-                        type="number"
-                        min={1}
-                        className="col-span-2 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={item.quantity}
-                        onChange={(e) => updateItem(i, "quantity", Number(e.target.value))}
-                        required
-                      />
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        className="col-span-3 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="0.00"
-                        value={item.unitPrice}
-                        onChange={(e) => updateItem(i, "unitPrice", Number(e.target.value))}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeItem(i)}
-                        disabled={items.length === 1}
-                        className="col-span-1 flex justify-center p-1.5 text-gray-400 hover:text-red-500 disabled:opacity-20"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Total */}
-                <div className="flex justify-end mt-3 pt-3 border-t border-gray-100">
-                  <span className="text-sm font-semibold text-gray-900">
-                    Total: ${total.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes <span className="text-gray-400 font-normal">(optional)</span>
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Payment terms, bank details..."
-                  rows={2}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                />
-              </div>
-
-              {error && <p className="text-sm text-red-600">{error}</p>}
-
-              <div className="flex gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="flex-1 border border-gray-300 text-gray-700 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                >
-                  {saving ? "Creating..." : "Create invoice"}
-                </button>
-              </div>
-            </form>
+            {/* Total */}
+            <div className="flex justify-end mt-3 pt-3 border-t border-gray-100">
+              <span className="text-sm font-semibold text-gray-900">
+                Total: ${total.toFixed(2)}
+              </span>
+            </div>
           </div>
-        </div>
-      )}
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Payment terms, bank details..."
+              rows={2}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            />
+          </div>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
+
+          <div className="flex gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => setModalOpen(false)}
+              className="flex-1 border border-gray-300 text-gray-700 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              {saving ? "Creating..." : "Create invoice"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
+  )
+}
+    </div >
   );
 }
