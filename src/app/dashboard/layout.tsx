@@ -11,8 +11,11 @@ export default async function DashboardLayout({
   const membership = await getCurrentMembership();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
-      <Sidebar orgName={membership.org.name} />
+    <div className="min-h-screen bg-gray-50 flex">
+      <Sidebar
+        orgName={membership.org.name}
+        currentOrgId={membership.org.id}
+      />
       <main className="flex-1 p-6 md:p-8 overflow-auto">
         {children}
       </main>
