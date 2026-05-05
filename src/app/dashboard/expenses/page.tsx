@@ -3,7 +3,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { 
+  Plus, 
+  Pencil, 
+  Trash2, 
+  Receipt, 
+  Wallet, 
+  DollarSign, 
+  CalendarDays, 
+  Tag, 
+  AlignLeft 
+} from "lucide-react";
 
 type Expense = {
   id: string;
@@ -31,15 +41,16 @@ const CATEGORIES = [
   "Other",
 ];
 
-const CATEGORY_COLORS: Record<string, string> = {
-  "Software & Tools": "bg-blue-100 text-blue-700",
-  "Marketing":        "bg-purple-100 text-purple-700",
-  "Salaries":         "bg-green-100 text-green-700",
-  "Office & Rent":    "bg-yellow-100 text-yellow-700",
-  "Travel":           "bg-orange-100 text-orange-700",
-  "Hardware":         "bg-cyan-100 text-cyan-700",
-  "Taxes & Fees":     "bg-red-100 text-red-700",
-  "Other":            "bg-gray-100 text-gray-600",
+// Upgraded category styles with soft backgrounds and subtle borders
+const CATEGORY_STYLES: Record<string, string> = {
+  "Software & Tools": "bg-indigo-50 text-indigo-700 border-indigo-200",
+  "Marketing":        "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
+  "Salaries":         "bg-emerald-50 text-emerald-700 border-emerald-200",
+  "Office & Rent":    "bg-amber-50 text-amber-700 border-amber-200",
+  "Travel":           "bg-sky-50 text-sky-700 border-sky-200",
+  "Hardware":         "bg-violet-50 text-violet-700 border-violet-200",
+  "Taxes & Fees":     "bg-rose-50 text-rose-700 border-rose-200",
+  "Other":            "bg-slate-50 text-slate-700 border-slate-200",
 };
 
 const empty: FormData = {
@@ -61,13 +72,20 @@ export default function ExpensesPage() {
   const [filterCategory, setFilterCategory] = useState("ALL");
 
   async function fetchExpenses() {
-    const res = await fetch("/api/expenses");
-    const data = await res.json();
-    setExpenses(data);
-    setLoading(false);
+    try {
+      const res = await fetch("/api/expenses");
+      const data = await res.json();
+      setExpenses(data);
+    } catch (err) {
+      console.error("Failed to fetch expenses", err);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  useEffect(() => { fetchExpenses(); }, []);
+  useEffect(() => {
+    fetchExpenses();
+  }, []);
 
   function openCreate() {
     setEditing(null);
@@ -96,27 +114,32 @@ export default function ExpensesPage() {
     const url = editing ? `/api/expenses/${editing.id}` : "/api/expenses";
     const method = editing ? "PATCH" : "POST";
 
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        amount: parseFloat(form.amount),
-      }),
-    });
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          amount: parseFloat(form.amount),
+        }),
+      });
 
-    if (res.ok) {
-      await fetchExpenses();
-      setModalOpen(false);
-    } else {
-      const data = await res.json();
-      setError(data.error || "Something went wrong.");
+      if (res.ok) {
+        await fetchExpenses();
+        setModalOpen(false);
+      } else {
+        const data = await res.json();
+        setError(data.error || "Something went wrong.");
+      }
+    } catch (err) {
+      setError("Failed to save expense. Please check your connection.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this expense?")) return;
+    if (!confirm("Are you sure you want to delete this expense? This action cannot be undone.")) return;
     setDeletingId(id);
     await fetch(`/api/expenses/${id}`, { method: "DELETE" });
     await fetchExpenses();
@@ -131,35 +154,40 @@ export default function ExpensesPage() {
   const total = filtered.reduce((sum, e) => sum + Number(e.amount), 0);
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-7xl mx-auto p-4 md:p-8 animate-in fade-in duration-500">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Expenses</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {filtered.length} record{filtered.length !== 1 ? "s" : ""} ·{" "}
-            <span className="font-medium text-gray-700">${total.toFixed(2)}</span> total
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2.5 bg-blue-600 text-white rounded-xl shadow-sm">
+              <Wallet size={24} strokeWidth={2} />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Expenses</h1>
+          </div>
+          <p className="text-gray-500 mt-1">
+            Showing <strong className="text-gray-900 font-semibold">{filtered.length}</strong> record{filtered.length !== 1 ? "s" : ""} totaling{" "}
+            <strong className="text-blue-600 font-semibold text-lg">${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
           </p>
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+          className="flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 hover:shadow-md transition-all active:scale-95 w-full md:w-auto"
         >
-          <Plus size={16} />
-          New expense
+          <Plus size={18} strokeWidth={2.5} />
+          New Expense
         </button>
       </div>
 
-      {/* Category filter */}
-      <div className="flex gap-2 mb-5 flex-wrap">
+      {/* Category Filters */}
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
         {["ALL", ...CATEGORIES].map((cat) => (
           <button
             key={cat}
             onClick={() => setFilterCategory(cat)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
+            className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-all border ${
               filterCategory === cat
-                ? "bg-gray-900 text-white border-gray-900"
-                : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                ? "bg-gray-900 text-white border-gray-900 shadow-md"
+                : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
             }`}
           >
             {cat}
@@ -167,168 +195,217 @@ export default function ExpensesPage() {
         ))}
       </div>
 
-      {/* Table */}
+      {/* Main Content Area */}
       {loading ? (
-        <div className="text-sm text-gray-400">Loading...</div>
+        <div className="flex flex-col items-center justify-center py-20 text-gray-400 space-y-4">
+          <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+          <p className="text-sm font-medium">Loading expenses...</p>
+        </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-lg font-medium text-gray-500 mb-1">No expenses yet</p>
-          <p className="text-sm text-gray-400">Start tracking your business expenses.</p>
+        <div className="bg-white border border-gray-200 rounded-2xl border-dashed flex flex-col items-center justify-center py-24 px-4 text-center">
+          <div className="bg-gray-50 p-4 rounded-full mb-4">
+            <Receipt size={32} className="text-gray-400" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">No expenses found</h3>
+          <p className="text-gray-500 max-w-sm mb-6">
+            {filterCategory === "ALL" 
+              ? "You haven't tracked any expenses yet. Add your first expense to get started." 
+              : `You don't have any expenses in the ${filterCategory} category.`}
+          </p>
+          <button 
+            onClick={openCreate} 
+            className="text-blue-600 font-medium hover:text-blue-700 flex items-center gap-1"
+          >
+            <Plus size={16} /> Add an expense
+          </button>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-5 py-3 font-medium text-gray-500">Category</th>
-                <th className="text-left px-5 py-3 font-medium text-gray-500">Date</th>
-                <th className="text-left px-5 py-3 font-medium text-gray-500">Notes</th>
-                <th className="text-right px-5 py-3 font-medium text-gray-500">Amount</th>
-                <th className="px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((expense) => (
-                <tr
-                  key={expense.id}
-                  className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
-                >
-                  <td className="px-5 py-4">
-                    <span
-                      className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-                        CATEGORY_COLORS[expense.category] ?? CATEGORY_COLORS["Other"]
-                      }`}
-                    >
-                      {expense.category}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-gray-500">
-                    {new Date(expense.date).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </td>
-                  <td className="px-5 py-4 text-gray-500 max-w-xs truncate">
-                    {expense.notes || <span className="text-gray-300">—</span>}
-                  </td>
-                  <td className="px-5 py-4 text-right font-medium text-gray-900">
-                    ${Number(expense.amount).toFixed(2)}
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => openEdit(expense)}
-                        className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(expense.id)}
-                        disabled={deletingId === expense.id}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-40"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50/50">
+                  <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Category</th>
+                  <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Date</th>
+                  <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Notes</th>
+                  <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs text-right">Amount</th>
+                  <th className="px-6 py-4"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filtered.map((expense) => (
+                  <tr
+                    key={expense.id}
+                    className="hover:bg-gray-50/80 transition-colors group"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border ${
+                          CATEGORY_STYLES[expense.category] ?? CATEGORY_STYLES["Other"]
+                        }`}
+                      >
+                        {expense.category}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-600 font-medium">
+                      {new Date(expense.date).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </td>
+                    <td className="px-6 py-4 text-gray-500 max-w-xs truncate">
+                      {expense.notes ? (
+                        <span className="truncate">{expense.notes}</span>
+                      ) : (
+                        <span className="text-gray-300 italic">No notes added</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right font-semibold text-gray-900">
+                      ${Number(expense.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => openEdit(expense)}
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit expense"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(expense.id)}
+                          disabled={deletingId === expense.id}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
+                          title="Delete expense"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {/* Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-5">
-              {editing ? "Edit expense" : "New expense"}
-            </h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h2 className="text-xl font-bold text-gray-900">
+                {editing ? "Edit Expense" : "Add New Expense"}
+              </h2>
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Category <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+            <div className="p-6">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Amount <span className="text-red-500">*</span>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Category <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={form.amount}
-                      onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                      placeholder="0.00"
-                      className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Tag size={16} className="text-gray-400" />
+                    </div>
+                    <select
+                      value={form.category}
+                      onChange={(e) => setForm({ ...form, category: e.target.value })}
+                      className="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none bg-white"
                       required
+                    >
+                      {CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      Amount <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <DollarSign size={16} className="text-gray-400" />
+                      </div>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={form.amount}
+                        onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                        placeholder="0.00"
+                        className="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      Date <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <CalendarDays size={16} className="text-gray-400" />
+                      </div>
+                      <input
+                        type="date"
+                        value={form.date}
+                        onChange={(e) => setForm({ ...form, date: e.target.value })}
+                        className="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Notes <span className="text-gray-400 font-normal ml-1">(Optional)</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute top-3 left-3 pointer-events-none">
+                      <AlignLeft size={16} className="text-gray-400" />
+                    </div>
+                    <textarea
+                      value={form.notes}
+                      onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                      placeholder="What was this expense for?"
+                      rows={3}
+                      className="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
                     />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Date <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={form.date}
-                    onChange={(e) => setForm({ ...form, date: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
+
+                {error && (
+                  <div className="p-3 bg-red-50 text-red-700 rounded-xl text-sm font-medium border border-red-100">
+                    {error}
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-4 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    className="flex-1 bg-white border border-gray-300 text-gray-700 rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex-1 bg-blue-600 text-white rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  >
+                    {saving ? "Saving..." : editing ? "Save Changes" : "Add Expense"}
+                  </button>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes <span className="text-gray-400 font-normal">(optional)</span>
-                </label>
-                <textarea
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  placeholder="What was this expense for?"
-                  rows={2}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                />
-              </div>
-
-              {error && <p className="text-sm text-red-600">{error}</p>}
-
-              <div className="flex gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="flex-1 border border-gray-300 text-gray-700 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                >
-                  {saving ? "Saving..." : editing ? "Save changes" : "Add expense"}
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       )}
