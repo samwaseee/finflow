@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { DollarSign, Users, FileText, TrendingUp, ArrowRight, Activity } from "lucide-react";
 import Link from "next/link";
 import DashboardCharts from "@/components/DashboardCharts";
+import CashFlowForecast from "@/components/CashFlowForecast";
 
 async function getDashboardStats(orgId: string) {
   const now = new Date();
@@ -291,6 +292,9 @@ export default async function DashboardPage() {
       </div>
 
       <DashboardCharts />
+
+      <CashFlowForecast />
+
     </div>
   );
 }

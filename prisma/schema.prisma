@@ -161,3 +161,11 @@ model Subscription {
   currentPeriodEnd   DateTime?
   org                Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 }
+
+model ForecastCache {
+  id        String   @id @default(cuid())
+  orgId     String   @unique
+  data      String   @db.Text
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
