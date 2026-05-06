@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { getActiveOrgId } from "@/lib/active-org";
+import { cookies } from "next/headers";
 
 export async function getRequiredSession() {
   const session = await getServerSession(authOptions);
@@ -14,18 +14,21 @@ export async function getRequiredSession() {
 
 export async function getCurrentMembership() {
   const session = await getRequiredSession();
-  const activeOrgId = await getActiveOrgId();
 
-  // Try to use the active org from cookie
+  const cookieStore = await cookies();
+  const activeOrgId = cookieStore.get("active_org_id")?.value;
+
+  console.log("🍪 activeOrgId from cookie:", activeOrgId);
+
   if (activeOrgId) {
     const membership = await prisma.membership.findFirst({
       where: { userId: session.user.id, orgId: activeOrgId },
       include: { org: true },
     });
+    console.log("🏢 membership found:", membership?.org.name);
     if (membership) return membership;
   }
 
-  // Fall back to first org
   const membership = await prisma.membership.findFirst({
     where: { userId: session.user.id },
     include: { org: true },
