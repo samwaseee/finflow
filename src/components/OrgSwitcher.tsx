@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronsUpDown, Plus, Building2, Loader2 } from "lucide-react";
 
@@ -20,7 +20,6 @@ export default function OrgSwitcher({ currentOrgId }: { currentOrgId: string }) 
   const [creating, setCreating] = useState(false);
   const [newOrgName, setNewOrgName] = useState("");
   const [saving, setSaving] = useState(false);
-  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     fetch("/api/orgs").then((r) => r.json()).then(setOrgs);
@@ -38,7 +37,8 @@ export default function OrgSwitcher({ currentOrgId }: { currentOrgId: string }) 
     });
 
     setOpen(false);
-    startTransition(() => router.refresh());
+    router.push("/dashboard");
+    router.refresh();
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -54,7 +54,6 @@ export default function OrgSwitcher({ currentOrgId }: { currentOrgId: string }) 
 
     if (res.ok) {
       const org = await res.json();
-      // switch to new org immediately
       await fetch("/api/orgs/switch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -63,7 +62,8 @@ export default function OrgSwitcher({ currentOrgId }: { currentOrgId: string }) 
       setNewOrgName("");
       setCreating(false);
       setOpen(false);
-      startTransition(() => router.refresh());
+      router.push("/dashboard");
+      router.refresh();
     }
 
     setSaving(false);
@@ -88,11 +88,7 @@ export default function OrgSwitcher({ currentOrgId }: { currentOrgId: string }) 
             {currentOrg?.role.toLowerCase()}
           </p>
         </div>
-        {isPending ? (
-          <Loader2 size={14} className="text-gray-400 animate-spin flex-shrink-0" />
-        ) : (
-          <ChevronsUpDown size={14} className="text-gray-400 flex-shrink-0" />
-        )}
+        <ChevronsUpDown size={14} className="text-gray-400 flex-shrink-0" />
       </button>
 
       {open && (
