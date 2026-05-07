@@ -20,23 +20,16 @@ async function getDashboardStats(orgId: string) {
     clientCount,
     lastMonthPaid,
   ] = await Promise.all([
-    // Total revenue = all PAID invoices
     prisma.invoice.aggregate({
       where: { orgId, status: "PAID" },
       _sum: { total: true },
     }),
-    // Outstanding = SENT + OVERDUE invoices
     prisma.invoice.aggregate({
       where: { orgId, status: { in: ["SENT", "OVERDUE"] } },
       _sum: { total: true },
     }),
-    // Draft invoice count
-    prisma.invoice.count({
-      where: { orgId, status: "DRAFT" },
-    }),
-    // Total clients
+    prisma.invoice.count({ where: { orgId, status: "DRAFT" } }),
     prisma.client.count({ where: { orgId } }),
-    // Last month revenue for growth calculation
     prisma.invoice.aggregate({
       where: {
         orgId,
@@ -51,15 +44,10 @@ async function getDashboardStats(orgId: string) {
   const outstanding = Number(outstandingInvoices._sum.total ?? 0);
   const lastMonthRevenue = Number(lastMonthPaid._sum.total ?? 0);
 
-  // Calculate month-over-month growth
   let monthlyGrowth = "+0%";
   if (lastMonthRevenue > 0) {
     const thisMonthPaid = await prisma.invoice.aggregate({
-      where: {
-        orgId,
-        status: "PAID",
-        createdAt: { gte: startOfMonth },
-      },
+      where: { orgId, status: "PAID", createdAt: { gte: startOfMonth } },
       _sum: { total: true },
     });
     const thisMonth = Number(thisMonthPaid._sum.total ?? 0);
@@ -67,13 +55,7 @@ async function getDashboardStats(orgId: string) {
     monthlyGrowth = `${growth >= 0 ? "+" : ""}${growth.toFixed(0)}%`;
   }
 
-  return {
-    totalRevenue,
-    outstanding,
-    draftCount,
-    clientCount,
-    monthlyGrowth,
-  };
+  return { totalRevenue, outstanding, draftCount, clientCount, monthlyGrowth };
 }
 
 async function getRecentActivity(orgId: string) {
@@ -153,65 +135,72 @@ export default async function DashboardPage() {
     <div className="max-w-6xl mx-auto pb-12">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-1">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight mb-1">
           Welcome back 👋
         </h1>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Here is what is happening at{" "}
-          <span className="font-medium text-gray-700">{membership.org.name}</span> today.
+          <span className="font-medium text-gray-700 dark:text-gray-300">
+            {membership.org.name}
+          </span>{" "}
+          today.
         </p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center gap-3 text-gray-500 mb-2">
-            <div className="p-2 bg-green-50 text-green-600 rounded-lg">
+        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400 mb-2">
+            <div className="p-2 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
               <DollarSign size={18} />
             </div>
             <h2 className="text-sm font-medium">Total Revenue</h2>
           </div>
           <div className="flex items-baseline gap-2">
-            <p className="text-2xl font-semibold text-gray-900">
+            <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
               ${stats.totalRevenue.toLocaleString()}
             </p>
-            <span className="text-xs font-medium text-green-600 flex items-center">
+            <span className="text-xs font-medium text-green-600 dark:text-green-400 flex items-center">
               <TrendingUp size={12} className="mr-0.5" />
               {stats.monthlyGrowth}
             </span>
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center gap-3 text-gray-500 mb-2">
-            <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
+        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400 mb-2">
+            <div className="p-2 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-lg">
               <Activity size={18} />
             </div>
             <h2 className="text-sm font-medium">Outstanding</h2>
           </div>
-          <p className="text-2xl font-semibold text-gray-900">
+          <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
             ${stats.outstanding.toLocaleString()}
           </p>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center gap-3 text-gray-500 mb-2">
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400 mb-2">
+            <div className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
               <FileText size={18} />
             </div>
             <h2 className="text-sm font-medium">Draft Invoices</h2>
           </div>
-          <p className="text-2xl font-semibold text-gray-900">{stats.draftCount}</p>
+          <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            {stats.draftCount}
+          </p>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center gap-3 text-gray-500 mb-2">
-            <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400 mb-2">
+            <div className="p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
               <Users size={18} />
             </div>
             <h2 className="text-sm font-medium">Active Clients</h2>
           </div>
-          <p className="text-2xl font-semibold text-gray-900">{stats.clientCount}</p>
+          <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            {stats.clientCount}
+          </p>
         </div>
       </div>
 
@@ -220,35 +209,39 @@ export default async function DashboardPage() {
 
         {/* Recent Activity */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-900">Recent Activity</h2>
+          <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                Recent Activity
+              </h2>
               <Link
                 href="/dashboard/invoices"
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
               >
                 View all
               </Link>
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-gray-100 dark:divide-slate-700">
               {activities.length === 0 ? (
-                <p className="px-6 py-8 text-sm text-gray-400 text-center">
+                <p className="px-6 py-8 text-sm text-gray-400 dark:text-gray-500 text-center">
                   No activity yet — create your first invoice to get started.
                 </p>
               ) : (
                 activities.map((activity) => (
                   <div
                     key={activity.id}
-                    className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                    className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
                   >
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{activity.type}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {activity.type}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                         {activity.client} · {activity.time}
                       </p>
                     </div>
                     {activity.amount && (
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         {activity.amount}
                       </span>
                     )}
@@ -261,30 +254,28 @@ export default async function DashboardPage() {
 
         {/* Quick Actions */}
         <div className="space-y-6">
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-            <h2 className="text-base font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-sm p-6">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              Quick Actions
+            </h2>
             <div className="space-y-3">
-              <Link
-                href="/dashboard/invoices"
-                className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-700 transition-all group"
-              >
-                Create New Invoice
-                <ArrowRight size={16} className="text-gray-400 group-hover:text-blue-600 transition-colors" />
-              </Link>
-              <Link
-                href="/dashboard/clients"
-                className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-700 transition-all group"
-              >
-                Add New Client
-                <ArrowRight size={16} className="text-gray-400 group-hover:text-blue-600 transition-colors" />
-              </Link>
-              <Link
-                href="/dashboard/expenses"
-                className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-700 transition-all group"
-              >
-                Log an Expense
-                <ArrowRight size={16} className="text-gray-400 group-hover:text-blue-600 transition-colors" />
-              </Link>
+              {[
+                { href: "/dashboard/invoices", label: "Create New Invoice" },
+                { href: "/dashboard/clients",  label: "Add New Client"    },
+                { href: "/dashboard/expenses", label: "Log an Expense"    },
+              ].map((action) => (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className="w-full flex items-center justify-between p-3 border border-gray-200 dark:border-slate-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 dark:hover:text-blue-400 transition-all group"
+                >
+                  {action.label}
+                  <ArrowRight
+                    size={16}
+                    className="text-gray-400 dark:text-gray-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                  />
+                </Link>
+              ))}
             </div>
           </div>
         </div>
@@ -292,7 +283,6 @@ export default async function DashboardPage() {
       </div>
 
       <DashboardCharts key={membership.orgId} orgId={membership.orgId} />
-
       <CashFlowForecast key={`forecast-${membership.orgId}`} orgId={membership.orgId} />
 
     </div>
