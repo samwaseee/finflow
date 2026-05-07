@@ -134,29 +134,34 @@ function ForecastTooltip({ active, payload, label }: any) {
     );
 }
 
-export default function CashFlowForecast() {
-    const [data, setData] = useState<ApiResponse | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const [refreshing, setRefreshing] = useState(false);
+export default function CashFlowForecast({ orgId }: { orgId: string }) {
+  const [data, setData] = useState<ApiResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
-    async function fetchForecast(refresh = false) {
-        try {
-            const url = refresh ? "/api/ai/forecast?refresh=true" : "/api/ai/forecast";
-            const res = await fetch(url);
-            if (!res.ok) throw new Error("Failed to fetch");
-            const json = await res.json();
-            setData(json);
-            setError("");
-        } catch {
-            setError("Could not load forecast. Make sure you have financial data.");
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
+  async function fetchForecast(refresh = false) {
+    setLoading(true);
+    try {
+      const url = refresh
+        ? `/api/ai/forecast?orgId=${orgId}&refresh=true`
+        : `/api/ai/forecast?orgId=${orgId}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch");
+      const json = await res.json();
+      setData(json);
+      setError("");
+    } catch {
+      setError("Could not load forecast. Make sure you have financial data.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
+  }
 
-    useEffect(() => { fetchForecast(); }, []);
+  useEffect(() => {
+    fetchForecast();
+  }, [orgId]); 
 
     async function handleRefresh() {
         setRefreshing(true);

@@ -291,9 +291,9 @@ export default async function DashboardPage() {
 
       </div>
 
-      <DashboardCharts />
+      <DashboardCharts key={membership.orgId} orgId={membership.orgId} />
 
-      <CashFlowForecast />
+      <CashFlowForecast key={`forecast-${membership.orgId}`} orgId={membership.orgId} />
 
     </div>
   );

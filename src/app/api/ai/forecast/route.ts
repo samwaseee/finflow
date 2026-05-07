@@ -1,9 +1,8 @@
 // src/app/api/ai/forecast/route.ts
 
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getOrgIdFromSession } from "@/lib/api-helpers";
 
 type MonthStats = {
   revenue: number;
@@ -22,14 +21,6 @@ type ForecastData = {
   insights: { type: "positive" | "warning" | "suggestion"; text: string }[];
   healthScore: number;
 };
-
-async function getOrgId(userId: string) {
-  const membership = await prisma.membership.findFirst({
-    where: { userId },
-    select: { orgId: true },
-  });
-  return membership?.orgId;
-}
 
 async function generateForecast(orgId: string) {
   const sixMonthsAgo = new Date();
@@ -89,8 +80,6 @@ async function generateForecast(orgId: string) {
   const totalOutstanding = monthlyData.reduce((s, m) => s + m.outstanding, 0);
   const avgRevenue = totalRevenue / (monthlyData.length || 1);
   const avgExpenses = totalExpenses / (monthlyData.length || 1);
-  const profitMargin =
-    avgRevenue > 0 ? ((avgRevenue - avgExpenses) / avgRevenue) * 100 : 0;
 
   const revenueGrowthRate = (() => {
     const recent = monthlyData.slice(-2).map((m) => m.revenue);
@@ -151,7 +140,10 @@ Rules:
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 2000 },
+        generationConfig: {
+          maxOutputTokens: 8192,
+          temperature: 0.3,
+        },
       }),
     }
   );
@@ -161,24 +153,20 @@ Rules:
   }
 
   const aiData = await response.json();
-  const rawText = aiData.candidates[0].content.parts[0].text;
+  const part = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!part) throw new Error("Empty response from Gemini");
 
-  const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+  const jsonMatch = part.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("No JSON in response");
 
   const forecast: ForecastData = JSON.parse(jsonMatch[0]);
-
   return { forecast, monthlyData };
 }
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const orgId = await getOrgId(session.user.id);
-  if (!orgId)
-    return NextResponse.json({ error: "No organization" }, { status: 404 });
+  const { orgId, error, status } = await getOrgIdFromSession();
+  if (error || !orgId)
+    return NextResponse.json({ error: error ?? "No organization" }, { status: status ?? 404 });
 
   const { searchParams } = new URL(req.url);
   const forceRefresh = searchParams.get("refresh") === "true";
@@ -192,7 +180,11 @@ export async function GET(req: Request) {
 
     if (cached && cached.expiresAt > now) {
       const parsed = JSON.parse(cached.data);
-      return NextResponse.json({ ...parsed, cached: true, expiresAt: cached.expiresAt });
+      return NextResponse.json({
+        ...parsed,
+        cached: true,
+        expiresAt: cached.expiresAt,
+      });
     }
   }
 
@@ -200,29 +192,19 @@ export async function GET(req: Request) {
   try {
     const result = await generateForecast(orgId);
 
-    // Cache for 7 days
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
     await prisma.forecastCache.upsert({
       where: { orgId },
-      update: {
-        data: JSON.stringify(result),
-        createdAt: now,
-        expiresAt,
-      },
-      create: {
-        orgId,
-        data: JSON.stringify(result),
-        expiresAt,
-      },
+      update: { data: JSON.stringify(result), createdAt: now, expiresAt },
+      create: { orgId, data: JSON.stringify(result), expiresAt },
     });
 
     return NextResponse.json({ ...result, cached: false, expiresAt });
   } catch (err) {
     console.error("Forecast generation failed:", err);
 
-    // If AI fails, return stale cache if available
     const staleCache = await prisma.forecastCache.findUnique({
       where: { orgId },
     });
@@ -237,6 +219,9 @@ export async function GET(req: Request) {
       });
     }
 
-    return NextResponse.json({ error: "AI forecast failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "AI forecast temporarily unavailable." },
+      { status: 503 }
+    );
   }
 }

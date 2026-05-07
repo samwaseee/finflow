@@ -90,18 +90,18 @@ function BarTooltip({
   );
 }
 
-export default function DashboardCharts() {
+export default function DashboardCharts({ orgId }: { orgId: string }) {
   const [data, setData] = useState<ChartData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/dashboard/charts")
+    fetch(`/api/dashboard/charts?orgId=${orgId}`)
       .then((r) => r.json())
       .then((d) => {
         setData(d);
         setLoading(false);
       });
-  }, []);
+  }, [orgId]);
 
   if (loading) {
     return (

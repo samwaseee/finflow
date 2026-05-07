@@ -1,29 +1,13 @@
-// src/app/api/expenses/route.ts
-
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-async function getOrgId(userId: string) {
-  const membership = await prisma.membership.findFirst({
-    where: { userId },
-    select: { orgId: true },
-  });
-  return membership?.orgId;
-}
+import { getOrgIdFromSession } from "@/lib/api-helpers";
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const orgId = await getOrgId(session.user.id);
-  if (!orgId)
-    return NextResponse.json({ error: "No organization" }, { status: 404 });
+  const { orgId, error, status } = await getOrgIdFromSession();
+  if (error) return NextResponse.json({ error }, { status: status ?? 401 });
 
   const expenses = await prisma.expense.findMany({
-    where: { orgId },
+    where: { orgId: orgId! },
     orderBy: { date: "desc" },
   });
 
@@ -31,13 +15,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const orgId = await getOrgId(session.user.id);
-  if (!orgId)
-    return NextResponse.json({ error: "No organization" }, { status: 404 });
+  const { orgId, error, status } = await getOrgIdFromSession();
+  if (error) return NextResponse.json({ error }, { status: status ?? 401 });
 
   const { category, amount, date, notes } = await req.json();
 
@@ -48,13 +27,7 @@ export async function POST(req: Request) {
     );
 
   const expense = await prisma.expense.create({
-    data: {
-      orgId,
-      category,
-      amount,
-      date: new Date(date),
-      notes,
-    },
+    data: { orgId: orgId!, category, amount, date: new Date(date), notes },
   });
 
   return NextResponse.json(expense, { status: 201 });
