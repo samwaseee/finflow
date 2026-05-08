@@ -15,7 +15,7 @@ import { signOut, useSession } from "next-auth/react";
 const PRO_PRICE_ID = config.stripe.proPriceId;
 const ENTERPRISE_PRICE_ID = config.stripe.enterprisePriceId;
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Subscription = {
   plan: "FREE" | "PRO" | "ENTERPRISE";
@@ -35,14 +35,14 @@ type Org = {
   currency: string;
 };
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: "general",  label: "General",      icon: Settings    },
-  { id: "profile",  label: "Profile",      icon: UserCircle  },
-  { id: "members",  label: "Team",         icon: Users       },
-  { id: "billing",  label: "Billing",      icon: CreditCard  },
-  { id: "danger",   label: "Danger Zone",  icon: AlertTriangle },
+  { id: "general", label: "General",     icon: Settings     },
+  { id: "profile", label: "Profile",     icon: UserCircle   },
+  { id: "members", label: "Team",        icon: Users        },
+  { id: "billing", label: "Billing",     icon: CreditCard   },
+  { id: "danger",  label: "Danger Zone", icon: AlertTriangle },
 ];
 
 const PLANS = [
@@ -66,25 +66,35 @@ const PLANS = [
 const CURRENCIES = ["USD", "EUR", "GBP", "BDT", "INR", "AUD", "CAD", "JPY", "SGD"];
 
 const ROLE_ICONS = {
-  OWNER:      { icon: Crown,  color: "text-yellow-600 bg-yellow-50"  },
-  ACCOUNTANT: { icon: Shield, color: "text-blue-600 bg-blue-50"      },
-  VIEWER:     { icon: Eye,    color: "text-gray-600 bg-gray-50"      },
+  OWNER:      { icon: Crown,  color: "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/30 dark:text-yellow-400" },
+  ACCOUNTANT: { icon: Shield, color: "text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400"         },
+  VIEWER:     { icon: Eye,    color: "text-gray-600 bg-gray-50 dark:bg-slate-700 dark:text-gray-400"           },
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  ACTIVE:   "bg-green-100 text-green-700",
-  TRIALING: "bg-blue-100 text-blue-700",
-  PAST_DUE: "bg-red-100 text-red-600",
-  CANCELED: "bg-gray-100 text-gray-500",
+  ACTIVE:   "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
+  TRIALING: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
+  PAST_DUE: "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400",
+  CANCELED: "bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400",
 };
+
+const inputClass = `
+  w-full border border-gray-300 dark:border-slate-600
+  bg-white dark:bg-slate-700
+  text-gray-900 dark:text-gray-100
+  placeholder:text-gray-400 dark:placeholder:text-gray-500
+  rounded-lg px-3 py-2 text-sm
+  focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500
+  transition-all
+`;
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function SectionHeader({ title, desc }: { title: string; desc: string }) {
   return (
     <div className="mb-6">
-      <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-      <p className="text-sm text-gray-500 mt-0.5">{desc}</p>
+      <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{desc}</p>
     </div>
   );
 }
@@ -112,15 +122,9 @@ function GeneralTab() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    fetch("/api/orgs")
-      .then((r) => r.json())
-      .then((orgs) => {
-        if (orgs?.[0]) {
-          setOrg(orgs[0]);
-          setName(orgs[0].name);
-          setCurrency(orgs[0].currency ?? "USD");
-        }
-      });
+    fetch("/api/orgs").then((r) => r.json()).then((orgs) => {
+      if (orgs?.[0]) { setOrg(orgs[0]); setName(orgs[0].name); setCurrency(orgs[0].currency ?? "USD"); }
+    });
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -132,8 +136,7 @@ function GeneralTab() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, currency }),
     });
-    setSaving(false);
-    setSaved(true);
+    setSaving(false); setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
 
@@ -142,35 +145,23 @@ function GeneralTab() {
       <SectionHeader title="General Settings" desc="Update your organization name and preferences." />
       <form onSubmit={handleSubmit} className="space-y-5 max-w-lg">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Organization name
           </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} required />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Currency
           </label>
-          <select
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {CURRENCIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
+          <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={inputClass}>
+            {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
         <div className="flex items-center gap-3">
           <SaveButton loading={saving} />
           {saved && (
-            <span className="flex items-center gap-1 text-sm text-green-600">
+            <span className="flex items-center gap-1 text-sm text-green-600 dark:text-green-400">
               <Check size={14} /> Saved
             </span>
           )}
@@ -197,8 +188,7 @@ function ProfileTab() {
       body: JSON.stringify({ name }),
     });
     await update({ name });
-    setSaving(false);
-    setSaved(true);
+    setSaving(false); setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
 
@@ -210,70 +200,48 @@ function ProfileTab() {
     <div>
       <SectionHeader title="Profile" desc="Update your personal information." />
       <div className="max-w-lg space-y-6">
-        {/* Avatar */}
         <div className="flex items-center gap-4">
           {session?.user?.image ? (
-            <img
-              src={session.user.image}
-              alt="avatar"
-              className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
-            />
+            <img src={session.user.image} alt="avatar" className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600" />
           ) : (
-            <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xl font-semibold border-2 border-gray-200">
+            <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 flex items-center justify-center text-xl font-semibold border-2 border-gray-200 dark:border-slate-600">
               {initials}
             </div>
           )}
           <div>
-            <p className="text-sm font-medium text-gray-900">{session?.user?.name}</p>
-            <p className="text-xs text-gray-400">{session?.user?.email}</p>
-            <p className="text-xs text-gray-400 mt-1">
-              Avatar synced from Google
-            </p>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{session?.user?.name}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">{session?.user?.email}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Avatar synced from Google</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Full name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full name</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} required />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
             <input
-              type="email"
-              value={session?.user?.email ?? ""}
-              disabled
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-400 cursor-not-allowed"
+              type="email" value={session?.user?.email ?? ""} disabled
+              className="w-full border border-gray-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-gray-50 dark:bg-slate-700/50 text-gray-400 dark:text-gray-500 cursor-not-allowed"
             />
-            <p className="text-xs text-gray-400 mt-1">
-              Email is managed by Google and cannot be changed here.
-            </p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Email is managed by Google and cannot be changed here.</p>
           </div>
           <div className="flex items-center gap-3">
             <SaveButton loading={saving} />
             {saved && (
-              <span className="flex items-center gap-1 text-sm text-green-600">
+              <span className="flex items-center gap-1 text-sm text-green-600 dark:text-green-400">
                 <Check size={14} /> Saved
               </span>
             )}
           </div>
         </form>
 
-        {/* Sign out */}
-        <div className="pt-4 border-t border-gray-100">
+        <div className="pt-4 border-t border-gray-100 dark:border-slate-700">
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="text-sm text-red-600 hover:text-red-700 font-medium"
+            className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium"
           >
             Sign out of your account
           </button>
@@ -296,8 +264,7 @@ function MembersTab() {
 
   async function fetchMembers() {
     const res = await fetch("/api/members");
-    const data = await res.json();
-    setMembers(data);
+    setMembers(await res.json());
     setLoading(false);
   }
 
@@ -305,20 +272,14 @@ function MembersTab() {
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
-    setInviting(true);
-    setError("");
+    setInviting(true); setError("");
     const res = await fetch("/api/members", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, role }),
     });
-    if (res.ok) {
-      setEmail("");
-      await fetchMembers();
-    } else {
-      const data = await res.json();
-      setError(data.error);
-    }
+    if (res.ok) { setEmail(""); await fetchMembers(); }
+    else { const data = await res.json(); setError(data.error); }
     setInviting(false);
   }
 
@@ -342,47 +303,42 @@ function MembersTab() {
       <SectionHeader title="Team Members" desc="Manage who has access to your organization." />
 
       {/* Invite form */}
-      <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-6 max-w-lg">
-        <p className="text-sm font-medium text-gray-700 mb-3">Add a team member</p>
+      <div className="bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600 rounded-xl p-5 mb-6 max-w-lg">
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Add a team member</p>
         <form onSubmit={handleInvite} className="space-y-3">
           <input
-            type="email"
-            value={email}
+            type="email" value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="colleague@company.com"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
+            className={inputClass} required
           />
           <div className="flex gap-3">
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as any)}
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`flex-1 ${inputClass}`}
             >
               <option value="VIEWER">Viewer — read only</option>
               <option value="ACCOUNTANT">Accountant — create & edit</option>
             </select>
             <button
-              type="submit"
-              disabled={inviting}
+              type="submit" disabled={inviting}
               className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
             >
               {inviting && <Loader2 size={13} className="animate-spin" />}
               Add
             </button>
           </div>
-          {error && <p className="text-xs text-red-600">{error}</p>}
-          <p className="text-xs text-gray-400">
-            The person must already have a FinFlow account.
-          </p>
+          {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
+          <p className="text-xs text-gray-400 dark:text-gray-500">The person must already have a FinFlow account.</p>
         </form>
       </div>
 
       {/* Members list */}
       {loading ? (
-        <div className="text-sm text-gray-400">Loading...</div>
+        <div className="text-sm text-gray-400 dark:text-gray-500">Loading...</div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden max-w-2xl">
+        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden max-w-2xl">
           {members.map((member, i) => {
             const roleStyle = ROLE_ICONS[member.role];
             const RoleIcon = roleStyle.icon;
@@ -395,57 +351,51 @@ function MembersTab() {
               <div
                 key={member.id}
                 className={`flex items-center gap-4 px-5 py-4 ${
-                  i !== members.length - 1 ? "border-b border-gray-100" : ""
+                  i !== members.length - 1 ? "border-b border-gray-100 dark:border-slate-700" : ""
                 }`}
               >
-                {/* Avatar */}
                 {member.user.image ? (
-                  <img
-                    src={member.user.image}
-                    alt=""
-                    className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-                  />
+                  <img src={member.user.image} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
                 ) : (
-                  <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 flex items-center justify-center text-xs font-semibold flex-shrink-0">
                     {initials}
                   </div>
                 )}
 
-                {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                       {member.user.name ?? "Unknown"}
                     </p>
                     {isCurrentUser && (
-                      <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                      <span className="text-xs bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full">
                         You
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-400 truncate">{member.user.email}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{member.user.email}</p>
                 </div>
 
-                {/* Role badge */}
                 <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${roleStyle.color}`}>
                   <RoleIcon size={12} />
                   {member.role}
                 </div>
 
-                {/* Actions — only for non-owners */}
                 {member.role !== "OWNER" && !isCurrentUser && (
                   <div className="flex items-center gap-2">
                     <div className="relative group">
-                      <button className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-gray-50">
+                      <button className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-slate-600 rounded-lg px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-slate-700">
                         Change role <ChevronDown size={11} />
                       </button>
-                      <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 hidden group-hover:block min-w-[140px]">
+                      <div className="absolute right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg dark:shadow-slate-900/50 z-10 hidden group-hover:block min-w-[140px]">
                         {["ACCOUNTANT", "VIEWER"].map((r) => (
                           <button
                             key={r}
                             onClick={() => handleRoleChange(member.id, r)}
-                            className={`block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg ${
-                              member.role === r ? "text-blue-600 font-medium" : "text-gray-700"
+                            className={`block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-slate-700 first:rounded-t-lg last:rounded-b-lg ${
+                              member.role === r
+                                ? "text-blue-600 dark:text-blue-400 font-medium"
+                                : "text-gray-700 dark:text-gray-300"
                             }`}
                           >
                             {r === "ACCOUNTANT" ? "Accountant" : "Viewer"}
@@ -455,7 +405,7 @@ function MembersTab() {
                     </div>
                     <button
                       onClick={() => handleRemove(member.id)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                      className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
                     >
                       <Trash2 size={13} />
                     </button>
@@ -480,9 +430,7 @@ function BillingTab({ initialBanner }: { initialBanner: "success" | "canceled" |
   const [banner, setBanner] = useState(initialBanner);
 
   useEffect(() => {
-    fetch("/api/stripe/subscription")
-      .then((r) => r.json())
-      .then((d) => { setSubscription(d); setLoading(false); });
+    fetch("/api/stripe/subscription").then((r) => r.json()).then((d) => { setSubscription(d); setLoading(false); });
   }, []);
 
   async function handleUpgrade(priceId: string, planId: string) {
@@ -510,40 +458,39 @@ function BillingTab({ initialBanner }: { initialBanner: "success" | "canceled" |
       <SectionHeader title="Billing & Plan" desc="Manage your subscription and payment details." />
 
       {banner === "success" && (
-        <div className="mb-6 flex items-center gap-3 bg-green-50 border border-green-200 text-green-800 rounded-xl px-5 py-4 text-sm">
-          <Check size={16} className="text-green-600 shrink-0" />
+        <div className="mb-6 flex items-center gap-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 text-green-800 dark:text-green-300 rounded-xl px-5 py-4 text-sm">
+          <Check size={16} className="text-green-600 dark:text-green-400 shrink-0" />
           <span><strong>Subscription activated!</strong> Your plan has been upgraded.</span>
         </div>
       )}
       {banner === "canceled" && (
-        <div className="mb-6 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-5 py-4 text-sm">
+        <div className="mb-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/50 text-yellow-800 dark:text-yellow-300 rounded-xl px-5 py-4 text-sm">
           Checkout was canceled. Your plan has not changed.
         </div>
       )}
 
       {/* Current plan */}
       {!loading && subscription && (
-        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm mb-6">
+        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-5 shadow-sm mb-6">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <p className="text-xs text-gray-500 mb-1">Current plan</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Current plan</p>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-gray-900">{subscription.plan}</span>
+                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{subscription.plan}</span>
                 <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_STYLES[subscription.status] ?? STATUS_STYLES.TRIALING}`}>
                   {subscription.status}
                 </span>
               </div>
               {subscription.currentPeriodEnd && (
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                   Renews {new Date(subscription.currentPeriodEnd).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
                 </p>
               )}
             </div>
             {subscription.plan !== "FREE" && (
               <button
-                onClick={handlePortal}
-                disabled={portalLoading}
-                className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+                onClick={handlePortal} disabled={portalLoading}
+                className="flex items-center gap-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50"
               >
                 {portalLoading && <Loader2 size={13} className="animate-spin" />}
                 Manage billing
@@ -560,8 +507,10 @@ function BillingTab({ initialBanner }: { initialBanner: "success" | "canceled" |
           return (
             <div
               key={plan.id}
-              className={`relative bg-white rounded-2xl p-5 flex flex-col ${
-                plan.highlighted ? "border-2 border-blue-500 shadow-lg" : "border border-gray-200 shadow-sm"
+              className={`relative bg-white dark:bg-slate-800 rounded-2xl p-5 flex flex-col ${
+                plan.highlighted
+                  ? "border-2 border-blue-500 shadow-lg"
+                  : "border border-gray-200 dark:border-slate-700 shadow-sm"
               }`}
             >
               {plan.highlighted && (
@@ -575,23 +524,23 @@ function BillingTab({ initialBanner }: { initialBanner: "success" | "canceled" |
                 <div className="flex items-center gap-2 mb-1">
                   {plan.id === "PRO" && <Zap size={14} className="text-blue-500" />}
                   {plan.id === "ENTERPRISE" && <Building2 size={14} className="text-purple-500" />}
-                  <h3 className="font-semibold text-gray-900">{plan.name}</h3>
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">{plan.name}</h3>
                 </div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-gray-900">{plan.price}</span>
-                  <span className="text-xs text-gray-400">{plan.period}</span>
+                  <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">{plan.price}</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">{plan.period}</span>
                 </div>
               </div>
               <ul className="space-y-2 mb-4 flex-1">
                 {plan.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-xs text-gray-600">
+                  <li key={f} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
                     <Check size={12} className="text-green-500 shrink-0" />
                     {f}
                   </li>
                 ))}
               </ul>
               {isCurrent ? (
-                <div className="w-full text-center py-2 rounded-lg bg-gray-100 text-xs font-medium text-gray-500">
+                <div className="w-full text-center py-2 rounded-lg bg-gray-100 dark:bg-slate-700 text-xs font-medium text-gray-500 dark:text-gray-400">
                   Current plan
                 </div>
               ) : plan.priceId ? (
@@ -599,14 +548,16 @@ function BillingTab({ initialBanner }: { initialBanner: "success" | "canceled" |
                   onClick={() => handleUpgrade(plan.priceId!, plan.id)}
                   disabled={checkoutLoading === plan.id}
                   className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium disabled:opacity-50 ${
-                    plan.highlighted ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-gray-900 text-white hover:bg-gray-800"
+                    plan.highlighted
+                      ? "bg-blue-600 text-white hover:bg-blue-700"
+                      : "bg-gray-900 dark:bg-slate-600 text-white hover:bg-gray-800 dark:hover:bg-slate-500"
                   }`}
                 >
                   {checkoutLoading === plan.id && <Loader2 size={12} className="animate-spin" />}
                   Upgrade to {plan.name}
                 </button>
               ) : (
-                <div className="w-full text-center py-2 rounded-lg border border-gray-200 text-xs font-medium text-gray-400">
+                <div className="w-full text-center py-2 rounded-lg border border-gray-200 dark:border-slate-600 text-xs font-medium text-gray-400 dark:text-gray-500">
                   Free forever
                 </div>
               )}
@@ -621,7 +572,6 @@ function BillingTab({ initialBanner }: { initialBanner: "success" | "canceled" |
 // ─── Tab: Danger Zone ─────────────────────────────────────────────────────────
 
 function DangerTab() {
-  const router = useRouter();
   const [confirmName, setConfirmName] = useState("");
   const [orgName, setOrgName] = useState("");
   const [orgId, setOrgId] = useState("");
@@ -629,69 +579,53 @@ function DangerTab() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/orgs")
-      .then((r) => r.json())
-      .then((orgs) => {
-        if (orgs?.[0]) {
-          setOrgName(orgs[0].name);
-          setOrgId(orgs[0].id);
-        }
-      });
+    fetch("/api/orgs").then((r) => r.json()).then((orgs) => {
+      if (orgs?.[0]) { setOrgName(orgs[0].name); setOrgId(orgs[0].id); }
+    });
   }, []);
 
   async function handleDelete(e: React.FormEvent) {
     e.preventDefault();
-    if (confirmName !== orgName) {
-      setError("Organization name does not match.");
-      return;
-    }
+    if (confirmName !== orgName) { setError("Organization name does not match."); return; }
     setDeleting(true);
     const res = await fetch(`/api/orgs/${orgId}`, { method: "DELETE" });
-    if (res.ok) {
-      await signOut({ callbackUrl: "/login" });
-    } else {
-      const data = await res.json();
-      setError(data.error);
-      setDeleting(false);
-    }
+    if (res.ok) { await signOut({ callbackUrl: "/login" }); }
+    else { const data = await res.json(); setError(data.error); setDeleting(false); }
   }
 
   return (
     <div>
-      <SectionHeader
-        title="Danger Zone"
-        desc="Irreversible actions that affect your organization."
-      />
+      <SectionHeader title="Danger Zone" desc="Irreversible actions that affect your organization." />
 
-      <div className="border border-red-200 rounded-xl overflow-hidden max-w-lg">
-        <div className="px-5 py-4 bg-red-50 border-b border-red-200">
+      <div className="border border-red-200 dark:border-red-800/50 rounded-xl overflow-hidden max-w-lg">
+        <div className="px-5 py-4 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800/50">
           <div className="flex items-center gap-2">
-            <AlertTriangle size={15} className="text-red-600" />
-            <h3 className="text-sm font-semibold text-red-800">
+            <AlertTriangle size={15} className="text-red-600 dark:text-red-400" />
+            <h3 className="text-sm font-semibold text-red-800 dark:text-red-300">
               Delete organization
             </h3>
           </div>
-          <p className="text-xs text-red-600 mt-1">
+          <p className="text-xs text-red-600 dark:text-red-400 mt-1">
             This will permanently delete <strong>{orgName}</strong> and all its data —
             invoices, clients, expenses, and reports. This cannot be undone.
           </p>
         </div>
 
-        <div className="p-5 bg-white">
+        <div className="p-5 bg-white dark:bg-slate-800">
           <form onSubmit={handleDelete} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Type <span className="font-semibold text-gray-900">{orgName}</span> to confirm
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Type <span className="font-semibold text-gray-900 dark:text-gray-100">{orgName}</span> to confirm
               </label>
               <input
                 type="text"
                 value={confirmName}
                 onChange={(e) => { setConfirmName(e.target.value); setError(""); }}
                 placeholder={orgName}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
               />
             </div>
-            {error && <p className="text-xs text-red-600">{error}</p>}
+            {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
             <button
               type="submit"
               disabled={confirmName !== orgName || deleting}
@@ -720,7 +654,6 @@ export default function SettingsPage() {
     ? "canceled"
     : null;
 
-  // Auto-switch to billing tab if redirected from Stripe
   useEffect(() => {
     if (banner) setActiveTab("billing");
   }, [banner]);
@@ -728,8 +661,8 @@ export default function SettingsPage() {
   return (
     <div className="max-w-5xl mx-auto pb-12">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
           Manage your organization, profile, team and billing.
         </p>
       </div>
@@ -741,17 +674,31 @@ export default function SettingsPage() {
             {TABS.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
+              const isDanger = tab.id === "danger";
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${
-                    isActive
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                  } ${tab.id === "danger" ? "mt-4 text-red-600 hover:bg-red-50 hover:text-red-700" : ""}`}
+                    isDanger ? "mt-4" : ""
+                  } ${
+                    isActive && !isDanger
+                      ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                      : isActive && isDanger
+                      ? "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400"
+                      : isDanger
+                      ? "text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-gray-100"
+                  }`}
                 >
-                  <Icon size={16} className={isActive ? "text-blue-600" : tab.id === "danger" ? "text-red-500" : "text-gray-400"} />
+                  <Icon
+                    size={16}
+                    className={
+                      isActive && !isDanger ? "text-blue-600 dark:text-blue-400"
+                      : isDanger ? "text-red-500 dark:text-red-400"
+                      : "text-gray-400 dark:text-gray-500"
+                    }
+                  />
                   {tab.label}
                 </button>
               );
@@ -761,11 +708,11 @@ export default function SettingsPage() {
 
         {/* Tab content */}
         <div className="flex-1 min-w-0">
-          {activeTab === "general"  && <GeneralTab />}
-          {activeTab === "profile"  && <ProfileTab />}
-          {activeTab === "members"  && <MembersTab />}
-          {activeTab === "billing"  && <BillingTab initialBanner={banner as any} />}
-          {activeTab === "danger"   && <DangerTab />}
+          {activeTab === "general" && <GeneralTab />}
+          {activeTab === "profile" && <ProfileTab />}
+          {activeTab === "members" && <MembersTab />}
+          {activeTab === "billing" && <BillingTab initialBanner={banner as any} />}
+          {activeTab === "danger"  && <DangerTab />}
         </div>
       </div>
     </div>
