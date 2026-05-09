@@ -103,7 +103,8 @@ async function getRecentActivity(orgId: string) {
     return `${days}d ago`;
   }
 
-  const invoiceItems: ActivityItem[] = recentInvoices.map((inv) => ({
+  // The Fix: Added explicit inline type for 'inv'
+  const invoiceItems: ActivityItem[] = recentInvoices.map((inv: { id: string; status: string; total: any; createdAt: Date; client: { name: string } }) => ({
     id: inv.id,
     type: STATUS_LABEL[inv.status] ?? "Invoice Updated",
     client: inv.client.name,
@@ -112,7 +113,8 @@ async function getRecentActivity(orgId: string) {
     createdAt: inv.createdAt,
   }));
 
-  const clientItems: ActivityItem[] = recentClients.map((c) => ({
+  // The Fix: Added explicit inline type for 'c' to prevent the next sequential build error
+  const clientItems: ActivityItem[] = recentClients.map((c: { id: string; name: string; createdAt: Date }) => ({
     id: c.id,
     type: "New Client Added",
     client: c.name,
