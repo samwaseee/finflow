@@ -4,6 +4,24 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOrgIdFromSession } from "@/lib/api-helpers";
 
+// 1. Defined explicit types to help TypeScript infer data downstream
+type ReportInvoice = {
+  number: string;
+  status: string;
+  total: any;
+  dueDate: Date | string;
+  createdAt: Date;
+  client: { name: string };
+  items: any[];
+};
+
+type ReportExpense = {
+  category: string;
+  amount: any;
+  date: Date;
+  notes: string | null;
+};
+
 export async function GET(req: Request) {
   const { orgId, error, status } = await getOrgIdFromSession();
   if (error || !orgId)
@@ -16,7 +34,8 @@ export async function GET(req: Request) {
   const from = new Date();
   from.setDate(from.getDate() - days);
 
-  const [invoices, expenses, clients] = await Promise.all([
+  // 2. Cast the Promise.all result so 'invoices' and 'expenses' inherit strict types
+  const [invoices, expenses, clients] = (await Promise.all([
     prisma.invoice.findMany({
       where: { orgId, createdAt: { gte: from } },
       include: { client: { select: { name: true } }, items: true },
@@ -30,14 +49,16 @@ export async function GET(req: Request) {
       where: { orgId },
       include: { _count: { select: { invoices: true } } },
     }),
-  ]);
+  ])) as [ReportInvoice[], ReportExpense[], any[]];
 
   // Revenue summary
   const paid = invoices.filter((i) => i.status === "PAID");
   const outstanding = invoices.filter((i) => i.status === "SENT" || i.status === "OVERDUE");
-  const totalRevenue = paid.reduce((s, i) => s + Number(i.total), 0);
-  const totalOutstanding = outstanding.reduce((s, i) => s + Number(i.total), 0);
-  const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount), 0);
+  
+  // 3. Explicitly typed 's' as a number in reducers to prevent secondary inference errors
+  const totalRevenue = paid.reduce((s: number, i) => s + Number(i.total), 0);
+  const totalOutstanding = outstanding.reduce((s: number, i) => s + Number(i.total), 0);
+  const totalExpenses = expenses.reduce((s: number, e) => s + Number(e.amount), 0);
 
   // Invoice status breakdown
   const statusBreakdown = {
@@ -93,20 +114,23 @@ export async function GET(req: Request) {
     const d = new Date();
     d.setMonth(d.getMonth() - (5 - i));
     const label = d.toLocaleString("en-US", { month: "short", year: "numeric" });
+    
     const monthRevenue = paid
       .filter(
         (inv) =>
           inv.createdAt.getMonth() === d.getMonth() &&
           inv.createdAt.getFullYear() === d.getFullYear()
       )
-      .reduce((s, inv) => s + Number(inv.total), 0);
+      .reduce((s: number, inv) => s + Number(inv.total), 0);
+      
     const monthExpenses = expenses
       .filter(
         (exp) =>
           exp.date.getMonth() === d.getMonth() &&
           exp.date.getFullYear() === d.getFullYear()
       )
-      .reduce((s, exp) => s + Number(exp.amount), 0);
+      .reduce((s: number, exp) => s + Number(exp.amount), 0);
+      
     return { month: label, revenue: monthRevenue, expenses: monthExpenses };
   });
 
