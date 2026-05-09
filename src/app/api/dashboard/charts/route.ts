@@ -31,13 +31,15 @@ export async function GET() {
   ]);
 
   const revenueByMonth = months.map(({ year, month, label }) => {
+    // Added explicit types for 'inv' to fix the implicit 'any' error
     const revenue = invoices
-      .filter((inv) => inv.createdAt.getFullYear() === year && inv.createdAt.getMonth() === month)
-      .reduce((sum, inv) => sum + Number(inv.total), 0);
+      .filter((inv: { createdAt: Date; total: any }) => inv.createdAt.getFullYear() === year && inv.createdAt.getMonth() === month)
+      .reduce((sum: number, inv: { total: any }) => sum + Number(inv.total), 0);
 
+    // Added explicit types for 'exp' to prevent the same error from happening here
     const expense = expenses
-      .filter((exp) => exp.date.getFullYear() === year && exp.date.getMonth() === month)
-      .reduce((sum, exp) => sum + Number(exp.amount), 0);
+      .filter((exp: { date: Date; amount: any }) => exp.date.getFullYear() === year && exp.date.getMonth() === month)
+      .reduce((sum: number, exp: { amount: any }) => sum + Number(exp.amount), 0);
 
     return { month: label, revenue, expenses: expense };
   });
@@ -46,6 +48,7 @@ export async function GET() {
   for (const exp of expenses) {
     categoryMap[exp.category] = (categoryMap[exp.category] ?? 0) + Number(exp.amount);
   }
+  
   const expenseByCategory = Object.entries(categoryMap)
     .map(([category, amount]) => ({ category, amount }))
     .sort((a, b) => b.amount - a.amount);
