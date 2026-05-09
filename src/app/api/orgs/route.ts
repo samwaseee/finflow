@@ -25,7 +25,8 @@ export async function GET() {
     orderBy: { org: { createdAt: "asc" } },
   });
 
-  return NextResponse.json(memberships.map((m) => ({
+  // The fix: Added explicit inline type for 'm'
+  return NextResponse.json(memberships.map((m: { org: { id: string; name: string; slug: string }; role: string }) => ({
     id: m.org.id,
     name: m.org.name,
     slug: m.org.slug,
