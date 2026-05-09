@@ -144,11 +144,11 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight mb-1">
-          Welcome back 👋
+          Welcome back,
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Here is what is happening at{" "}
-          <span className="font-medium text-gray-700 dark:text-gray-300">
+          <span className="font-bold text-xl text-gray-700 dark:text-gray-300">
             {membership.org.name}
           </span>{" "}
           today.
