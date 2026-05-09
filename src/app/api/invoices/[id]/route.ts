@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { InvoiceStatus } from "@prisma/client";
+// Removed: import { InvoiceStatus } from "@prisma/client";
 
 async function getOrgId(userId: string) {
   const membership = await prisma.membership.findFirst({
@@ -33,7 +33,8 @@ export async function PATCH(
 
   const updated = await prisma.invoice.update({
     where: { id },
-    data: { status: status as InvoiceStatus },
+    // Removed the 'as InvoiceStatus' cast and passed status directly
+    data: { status: status as any }, 
     include: {
       client: { select: { name: true, email: true } },
       items: true,
