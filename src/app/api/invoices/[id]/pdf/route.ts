@@ -50,7 +50,8 @@ export async function GET(
         createdAt: invoice.createdAt.toISOString(),
         total: Number(invoice.total),
         notes: invoice.notes,
-        items: invoice.items.map((item) => ({
+        // The fix: Added an explicit inline type for 'item'
+        items: invoice.items.map((item: { description: string; quantity: number; unitPrice: any }) => ({
           description: item.description,
           quantity: item.quantity,
           unitPrice: Number(item.unitPrice),
