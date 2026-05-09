@@ -1,9 +1,10 @@
-// src/app/dashboard/invoices/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { Plus, Trash2, ChevronDown, Download, FileText, X } from "lucide-react";
+import LoadingState from "@/components/ui/LoadingState";
+import ErrorState from "@/components/ui/ErrorState";
+import EmptyState from "@/components/ui/EmptyState";
 
 type InvoiceItem = {
   id: string;
@@ -55,6 +56,7 @@ export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [filter, setFilter] = useState<string>("ALL");
 
@@ -66,13 +68,20 @@ export default function InvoicesPage() {
   const [error, setError] = useState("");
 
   async function fetchAll() {
-    const [invRes, cliRes] = await Promise.all([
-      fetch("/api/invoices"),
-      fetch("/api/clients"),
-    ]);
-    setInvoices(await invRes.json());
-    setClients(await cliRes.json());
-    setLoading(false);
+    try {
+      setFetchError("");
+      const [invRes, cliRes] = await Promise.all([
+        fetch("/api/invoices"),
+        fetch("/api/clients"),
+      ]);
+      if (!invRes.ok || !cliRes.ok) throw new Error("Failed to fetch");
+      setInvoices(await invRes.json());
+      setClients(await cliRes.json());
+    } catch {
+      setFetchError("Failed to load invoices.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { fetchAll(); }, []);
@@ -135,7 +144,6 @@ export default function InvoicesPage() {
   return (
     <div className="min-h-screen p-6 md:p-10 font-sans">
       <div className="max-w-6xl mx-auto">
-
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
@@ -176,37 +184,31 @@ export default function InvoicesPage() {
           ))}
         </div>
 
-        {/* Loading */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 text-slate-400 dark:text-slate-500 space-y-4">
-            <div className="w-8 h-8 border-4 border-slate-200 dark:border-slate-600 border-t-blue-600 rounded-full animate-spin" />
-            <p className="text-sm font-medium">Loading invoices...</p>
-          </div>
-
+          <LoadingState message="Loading invoices..." />
+        ) : fetchError ? (
+          <ErrorState message={fetchError} onRetry={fetchAll} />
         ) : filtered.length === 0 ? (
-          /* Empty state */
-          <div className="flex flex-col items-center justify-center py-24 px-6 text-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 border-dashed rounded-3xl shadow-sm">
-            <div className="w-16 h-16 bg-slate-50 dark:bg-slate-700 rounded-full flex items-center justify-center mb-4">
-              <FileText className="text-slate-400 dark:text-slate-500" size={28} />
-            </div>
-            <p className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-1">
-              {filter === "ALL" ? "No invoices yet" : `No ${filter.toLowerCase()} invoices`}
-            </p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mb-6">
-              {filter === "ALL"
-                ? "Get paid for your hard work. Create your first invoice to get started."
-                : `You don't have any invoices currently marked as ${filter.toLowerCase()}.`}
-            </p>
-            {filter === "ALL" && (
-              <button
-                onClick={openCreate}
-                className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline underline-offset-4"
-              >
-                Create an invoice →
-              </button>
-            )}
-          </div>
-
+          <EmptyState
+            icon={FileText}
+            title={filter === "ALL" ? "No invoices yet" : `No ${filter.toLowerCase()} invoices`}
+            description={
+              filter === "ALL"
+                ? "Create your first invoice to start getting paid for your work."
+                : `You don't have any invoices marked as ${filter.toLowerCase()} right now.`
+            }
+            action={
+              filter === "ALL" ? (
+                <button
+                  onClick={openCreate}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  <Plus size={16} />
+                  Create first invoice
+                </button>
+              ) : undefined
+            }
+          />
         ) : (
           /* Table */
           <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm">
@@ -301,7 +303,6 @@ export default function InvoicesPage() {
         {modalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm">
             <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
-
               {/* Modal header */}
               <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-700">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
@@ -318,7 +319,6 @@ export default function InvoicesPage() {
               {/* Modal body */}
               <div className="overflow-y-auto p-6">
                 <form id="invoice-form" onSubmit={handleSubmit} className="space-y-6">
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">

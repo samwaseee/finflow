@@ -88,13 +88,13 @@ export default function Sidebar({
         {/* Content sits above glows */}
         <div className="relative z-10 flex flex-col h-full">
 
-          {/* Org switcher */}
-          <div className="p-3 border-b border-gray-100/80 dark:border-slate-700/80">
+          {/* Org switcher wrapper - Added explicit text coloring to force dark mode cascading */}
+          <div className="p-3 border-b border-gray-100/80 dark:border-slate-700/80 text-gray-900 dark:text-gray-100">
             <OrgSwitcher currentOrgId={currentOrgId} />
           </div>
 
           {/* Nav links */}
-          <nav className="flex flex-col gap-0.5 flex-1 p-2.5 overflow-y-auto">
+          <nav className="flex flex-col gap-1 flex-1 p-2.5 overflow-y-auto">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               return (
@@ -103,10 +103,10 @@ export default function Sidebar({
                   href={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`
-                    flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+                    flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
                     ${isActive
-                      ? "bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 shadow-sm"
-                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50/80 dark:hover:bg-slate-700/60 hover:text-gray-900 dark:hover:text-gray-100"
+                      ? "bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 shadow-md scale-[1.03] border border-blue-200/60 dark:border-blue-500/40 z-10"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50/80 dark:hover:bg-slate-700/60 hover:text-gray-900 dark:hover:text-gray-100 border border-transparent hover:border-gray-300 dark:hover:border-slate-500"
                     }
                   `}
                 >

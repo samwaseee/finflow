@@ -1,5 +1,3 @@
-// src/app/dashboard/reports/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -12,6 +10,8 @@ import {
   FileText, Users, Download, Calendar,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import LoadingState from "@/components/ui/LoadingState";
+import ErrorState from "@/components/ui/ErrorState";
 
 type Summary = {
   totalRevenue: number;
@@ -101,6 +101,7 @@ function CustomTooltip({ active, payload, label }: any) {
 export default function ReportsPage() {
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
   const [range, setRange] = useState("30");
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
@@ -111,9 +112,16 @@ export default function ReportsPage() {
 
   async function fetchReport(r: string) {
     setLoading(true);
-    const res = await fetch(`/api/reports?range=${r}`);
-    setData(await res.json());
-    setLoading(false);
+    setFetchError("");
+    try {
+      const res = await fetch(`/api/reports?range=${r}`);
+      if (!res.ok) throw new Error("Failed to fetch");
+      setData(await res.json());
+    } catch {
+      setFetchError("Failed to load report data.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { fetchReport(range); }, [range]);
@@ -160,6 +168,16 @@ export default function ReportsPage() {
             <div key={i} className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-5 h-28 animate-pulse" />
           ))}
         </div>
+        <LoadingState message="Generating your report..." />
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="max-w-6xl mx-auto pb-12">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-8">Reports</h1>
+        <ErrorState message={fetchError} onRetry={() => fetchReport(range)} />
       </div>
     );
   }
@@ -169,7 +187,6 @@ export default function ReportsPage() {
 
   return (
     <div className="max-w-6xl mx-auto pb-12">
-
       {/* Header */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <div>
@@ -237,7 +254,6 @@ export default function ReportsPage() {
 
       {/* Charts row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-
         {/* Monthly trend */}
         <div className="lg:col-span-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -312,7 +328,6 @@ export default function ReportsPage() {
 
       {/* Charts row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-
         {/* Top clients */}
         <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">

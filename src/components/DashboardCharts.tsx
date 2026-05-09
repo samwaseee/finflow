@@ -1,5 +1,3 @@
-// src/components/DashboardCharts.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,6 +7,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useTheme } from "next-themes";
+import ErrorState from "@/components/ui/ErrorState";
 
 type MonthData = {
   month: string;
@@ -66,6 +65,7 @@ function BarTooltip({ active, payload }: { active?: boolean; payload?: any[] }) 
 export default function DashboardCharts({ orgId }: { orgId: string }) {
   const [data, setData] = useState<ChartData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
@@ -75,8 +75,12 @@ export default function DashboardCharts({ orgId }: { orgId: string }) {
 
   useEffect(() => {
     fetch(`/api/dashboard/charts?orgId=${orgId}`)
-      .then((r) => r.json())
-      .then((d) => { setData(d); setLoading(false); });
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed");
+        return r.json();
+      })
+      .then((d) => { setData(d); setLoading(false); })
+      .catch(() => { setError("Failed to load charts."); setLoading(false); });
   }, [orgId]);
 
   if (loading) {
@@ -97,6 +101,10 @@ export default function DashboardCharts({ orgId }: { orgId: string }) {
     );
   }
 
+  if (error) {
+    return <ErrorState message={error} onRetry={() => { setError(""); setLoading(true); }} />;
+  }
+
   if (!data) return null;
 
   const hasRevenue  = data.revenueByMonth.some((d) => d.revenue > 0 || d.expenses > 0);
@@ -104,7 +112,6 @@ export default function DashboardCharts({ orgId }: { orgId: string }) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-
       {/* Revenue vs Expenses */}
       <div className="lg:col-span-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
         <div className="flex items-center justify-between mb-6">
@@ -202,7 +209,6 @@ export default function DashboardCharts({ orgId }: { orgId: string }) {
           </div>
         )}
       </div>
-
     </div>
   );
 }

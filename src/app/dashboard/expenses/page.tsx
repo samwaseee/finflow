@@ -1,5 +1,3 @@
-// src/app/dashboard/expenses/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -7,6 +5,9 @@ import {
   Plus, Pencil, Trash2, Receipt, Wallet,
   DollarSign, CalendarDays, Tag, AlignLeft,
 } from "lucide-react";
+import LoadingState from "@/components/ui/LoadingState";
+import ErrorState from "@/components/ui/ErrorState";
+import EmptyState from "@/components/ui/EmptyState";
 
 type Expense = {
   id: string;
@@ -59,6 +60,7 @@ const inputClass = `
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [form, setForm] = useState<FormData>(empty);
@@ -69,10 +71,12 @@ export default function ExpensesPage() {
 
   async function fetchExpenses() {
     try {
+      setFetchError("");
       const res = await fetch("/api/expenses");
+      if (!res.ok) throw new Error("Failed to fetch");
       setExpenses(await res.json());
-    } catch (err) {
-      console.error("Failed to fetch expenses", err);
+    } catch {
+      setFetchError("Failed to load expenses.");
     } finally {
       setLoading(false);
     }
@@ -128,7 +132,6 @@ export default function ExpensesPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8">
-
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
         <div>
@@ -177,35 +180,31 @@ export default function ExpensesPage() {
         ))}
       </div>
 
-      {/* Loading */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-500 space-y-4">
-          <div className="w-8 h-8 border-4 border-blue-200 dark:border-blue-900 border-t-blue-600 rounded-full animate-spin" />
-          <p className="text-sm font-medium">Loading expenses...</p>
-        </div>
-
+        <LoadingState message="Loading expenses..." />
+      ) : fetchError ? (
+        <ErrorState message={fetchError} onRetry={fetchExpenses} />
       ) : filtered.length === 0 ? (
-        /* Empty state */
-        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl border-dashed flex flex-col items-center justify-center py-24 px-4 text-center">
-          <div className="bg-gray-50 dark:bg-slate-700 p-4 rounded-full mb-4">
-            <Receipt size={32} className="text-gray-400 dark:text-gray-500" />
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            No expenses found
-          </h3>
-          <p className="text-gray-500 dark:text-gray-400 max-w-sm mb-6">
-            {filterCategory === "ALL"
-              ? "You haven't tracked any expenses yet. Add your first expense to get started."
-              : `You don't have any expenses in the ${filterCategory} category.`}
-          </p>
-          <button
-            onClick={openCreate}
-            className="text-blue-600 dark:text-blue-400 font-medium hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1"
-          >
-            <Plus size={16} /> Add an expense
-          </button>
-        </div>
-
+        <EmptyState
+          icon={Receipt}
+          title="No expenses found"
+          description={
+            filterCategory === "ALL"
+              ? "Start tracking your business expenses to get better financial insights."
+              : `No expenses in the ${filterCategory} category yet.`
+          }
+          action={
+            filterCategory === "ALL" ? (
+              <button
+                onClick={openCreate}
+                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors"
+              >
+                <Plus size={16} />
+                Add first expense
+              </button>
+            ) : undefined
+          }
+        />
       ) : (
         /* Table */
         <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
@@ -277,7 +276,6 @@ export default function ExpensesPage() {
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 dark:bg-black/60 backdrop-blur-sm">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-
             {/* Modal header */}
             <div className="px-6 py-5 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50/50 dark:bg-slate-700/30">
               <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
@@ -288,7 +286,6 @@ export default function ExpensesPage() {
             {/* Modal body */}
             <div className="p-6">
               <form onSubmit={handleSubmit} className="space-y-5">
-
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                     Category <span className="text-red-500">*</span>
@@ -350,8 +347,7 @@ export default function ExpensesPage() {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Notes{" "}
-                    <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(Optional)</span>
+                    Notes <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(Optional)</span>
                   </label>
                   <div className="relative">
                     <div className="absolute top-3 left-3 pointer-events-none">

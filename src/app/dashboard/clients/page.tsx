@@ -1,12 +1,10 @@
-// src/app/dashboard/clients/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Plus, Pencil, Trash2, Mail, MapPin,
-  FileText, Users, X, User,
-} from "lucide-react";
+import { Plus, Pencil, Trash2, Mail, MapPin, FileText, Users, X, User } from "lucide-react";
+import LoadingState from "@/components/ui/LoadingState";
+import ErrorState from "@/components/ui/ErrorState";
+import EmptyState from "@/components/ui/EmptyState";
 
 type Client = {
   id: string;
@@ -27,6 +25,7 @@ const empty: FormData = { name: "", email: "", address: "" };
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
   const [form, setForm] = useState<FormData>(empty);
@@ -36,11 +35,13 @@ export default function ClientsPage() {
 
   async function fetchClients() {
     try {
+      setFetchError("");
       const res = await fetch("/api/clients");
+      if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       setClients(data);
-    } catch (err) {
-      console.error("Failed to fetch clients", err);
+    } catch {
+      setFetchError("Failed to load clients.");
     } finally {
       setLoading(false);
     }
@@ -93,7 +94,6 @@ export default function ClientsPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
@@ -118,47 +118,25 @@ export default function ClientsPage() {
         </button>
       </div>
 
-      {/* Loading skeleton */}
       {loading ? (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm ring-1 ring-gray-900/5 dark:ring-slate-700/50 overflow-hidden">
-          <div className="animate-pulse flex flex-col divide-y divide-gray-100 dark:divide-slate-700">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex items-center gap-4 p-5">
-                <div className="h-10 w-10 bg-gray-100 dark:bg-slate-700 rounded-full shrink-0" />
-                <div className="flex-1 space-y-2.5">
-                  <div className="h-4 bg-gray-100 dark:bg-slate-700 rounded-md w-1/4" />
-                  <div className="h-3 bg-gray-50 dark:bg-slate-700/50 rounded-md w-1/3" />
-                </div>
-                <div className="hidden sm:block flex-1">
-                  <div className="h-4 bg-gray-50 dark:bg-slate-700/50 rounded-md w-1/2" />
-                </div>
-                <div className="h-8 w-16 bg-gray-50 dark:bg-slate-700/50 rounded-full shrink-0" />
-              </div>
-            ))}
-          </div>
-        </div>
-
+        <LoadingState message="Loading clients..." />
+      ) : fetchError ? (
+        <ErrorState message={fetchError} onRetry={fetchClients} />
       ) : clients.length === 0 ? (
-        /* Empty state */
-        <div className="text-center py-24 bg-white dark:bg-slate-800 ring-1 ring-gray-900/5 dark:ring-slate-700/50 rounded-2xl flex flex-col items-center justify-center shadow-sm">
-          <div className="h-16 w-16 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mb-5 ring-8 ring-blue-50/50 dark:ring-blue-900/20">
-            <Users size={32} strokeWidth={1.5} />
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            No clients yet
-          </h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-sm">
-            Add your first client to start generating invoices and tracking your business relationships.
-          </p>
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-2 bg-white dark:bg-slate-700 border-2 border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-300 px-5 py-2.5 rounded-xl text-sm font-semibold hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-600 transition-all active:scale-95"
-          >
-            <Plus size={18} />
-            Add First Client
-          </button>
-        </div>
-
+        <EmptyState
+          icon={Users}
+          title="No clients yet"
+          description="Add your first client to start generating invoices and tracking your business relationships."
+          action={
+            <button
+              onClick={openCreate}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors"
+            >
+              <Plus size={16} />
+              Add first client
+            </button>
+          }
+        />
       ) : (
         /* Table */
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm ring-1 ring-gray-900/5 dark:ring-slate-700/50 overflow-hidden">
@@ -259,7 +237,6 @@ export default function ClientsPage() {
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 dark:bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-
             {/* Modal header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-700/30">
               <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">

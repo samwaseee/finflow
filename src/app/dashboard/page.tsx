@@ -1,11 +1,15 @@
-// src/app/dashboard/page.tsx
-
 import { getCurrentMembership } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { DollarSign, Users, FileText, TrendingUp, ArrowRight, Activity } from "lucide-react";
 import Link from "next/link";
 import DashboardCharts from "@/components/DashboardCharts";
 import CashFlowForecast from "@/components/CashFlowForecast";
+
+// Helper to format money — shows "—" if zero and no data yet
+function formatMoney(amount: number, hasData: boolean) {
+  if (!hasData && amount === 0) return "—";
+  return `$${amount.toLocaleString()}`;
+}
 
 async function getDashboardStats(orgId: string) {
   const now = new Date();
@@ -131,6 +135,8 @@ export default async function DashboardPage() {
     getRecentActivity(orgId),
   ]);
 
+  const hasData = stats.totalRevenue > 0 || stats.clientCount > 0 || stats.draftCount > 0;
+
   return (
     <div className="max-w-6xl mx-auto pb-12">
       {/* Header */}
@@ -158,7 +164,7 @@ export default async function DashboardPage() {
           </div>
           <div className="flex items-baseline gap-2">
             <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-              ${stats.totalRevenue.toLocaleString()}
+              {formatMoney(stats.totalRevenue, hasData)}
             </p>
             <span className="text-xs font-medium text-green-600 dark:text-green-400 flex items-center">
               <TrendingUp size={12} className="mr-0.5" />
@@ -175,7 +181,7 @@ export default async function DashboardPage() {
             <h2 className="text-sm font-medium">Outstanding</h2>
           </div>
           <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-            ${stats.outstanding.toLocaleString()}
+            {formatMoney(stats.outstanding, hasData)}
           </p>
         </div>
 
@@ -187,7 +193,7 @@ export default async function DashboardPage() {
             <h2 className="text-sm font-medium">Draft Invoices</h2>
           </div>
           <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-            {stats.draftCount}
+            {!hasData && stats.draftCount === 0 ? "—" : stats.draftCount}
           </p>
         </div>
 
@@ -199,14 +205,13 @@ export default async function DashboardPage() {
             <h2 className="text-sm font-medium">Active Clients</h2>
           </div>
           <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-            {stats.clientCount}
+            {!hasData && stats.clientCount === 0 ? "—" : stats.clientCount}
           </p>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
         {/* Recent Activity */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
@@ -223,9 +228,17 @@ export default async function DashboardPage() {
             </div>
             <div className="divide-y divide-gray-100 dark:divide-slate-700">
               {activities.length === 0 ? (
-                <p className="px-6 py-8 text-sm text-gray-400 dark:text-gray-500 text-center">
-                  No activity yet — create your first invoice to get started.
-                </p>
+                <div className="px-6 py-10 text-center">
+                  <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-3">
+                    <Activity size={18} className="text-blue-500 dark:text-blue-400" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    No activity yet
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    Create your first invoice or add a client to get started.
+                  </p>
+                </div>
               ) : (
                 activities.map((activity) => (
                   <div
@@ -279,7 +292,6 @@ export default async function DashboardPage() {
             </div>
           </div>
         </div>
-
       </div>
 
       <DashboardCharts key={membership.orgId} orgId={membership.orgId} />
