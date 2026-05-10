@@ -103,7 +103,6 @@ async function getRecentActivity(orgId: string) {
     return `${days}d ago`;
   }
 
-  // The Fix: Added explicit inline type for 'inv'
   const invoiceItems: ActivityItem[] = recentInvoices.map((inv: { id: string; status: string; total: any; createdAt: Date; client: { name: string } }) => ({
     id: inv.id,
     type: STATUS_LABEL[inv.status] ?? "Invoice Updated",
@@ -113,7 +112,6 @@ async function getRecentActivity(orgId: string) {
     createdAt: inv.createdAt,
   }));
 
-  // The Fix: Added explicit inline type for 'c' to prevent the next sequential build error
   const clientItems: ActivityItem[] = recentClients.map((c: { id: string; name: string; createdAt: Date }) => ({
     id: c.id,
     type: "New Client Added",
@@ -128,9 +126,29 @@ async function getRecentActivity(orgId: string) {
     .slice(0, 5);
 }
 
+// Add this helper function
+async function checkOverdueInvoices(orgId: string) {
+  try {
+    const now = new Date();
+    await prisma.invoice.updateMany({
+      where: {
+        orgId,
+        status: "SENT",
+        dueDate: { lt: now },
+      },
+      data: { status: "OVERDUE" },
+    });
+  } catch (err) {
+    console.error("Overdue check failed:", err);
+  }
+}
+
 export default async function DashboardPage() {
   const membership = await getCurrentMembership();
   const orgId = membership.orgId;
+
+  // Silently check for overdue invoices on every dashboard visit
+  await checkOverdueInvoices(orgId);
 
   const [stats, activities] = await Promise.all([
     getDashboardStats(orgId),

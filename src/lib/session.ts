@@ -18,14 +18,11 @@ export async function getCurrentMembership() {
   const cookieStore = await cookies();
   const activeOrgId = cookieStore.get("active_org_id")?.value;
 
-  console.log("🍪 activeOrgId from cookie:", activeOrgId);
-
   if (activeOrgId) {
     const membership = await prisma.membership.findFirst({
       where: { userId: session.user.id, orgId: activeOrgId },
       include: { org: true },
     });
-    console.log("🏢 membership found:", membership?.org.name);
     if (membership) return membership;
   }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, ChevronDown, Download, FileText, X } from "lucide-react";
+import { Plus, Trash2, ChevronDown, Download, FileText, X, Pencil, Mail, Loader2 } from "lucide-react";
 import LoadingState from "@/components/ui/LoadingState";
 import ErrorState from "@/components/ui/ErrorState";
 import EmptyState from "@/components/ui/EmptyState";
@@ -39,16 +39,16 @@ type LineItem = {
 const emptyItem: LineItem = { description: "", quantity: 1, unitPrice: 0 };
 
 const STATUS_STYLES: Record<string, string> = {
-  DRAFT:   "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-600",
-  SENT:    "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800/50",
-  PAID:    "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50",
+  DRAFT: "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-600",
+  SENT: "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800/50",
+  PAID: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50",
   OVERDUE: "bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800/50",
 };
 
 const STATUS_FLOW: Record<string, string[]> = {
-  DRAFT:   ["SENT"],
-  SENT:    ["PAID", "OVERDUE"],
-  PAID:    [],
+  DRAFT: ["SENT"],
+  SENT: ["PAID", "OVERDUE"],
+  PAID: [],
   OVERDUE: ["PAID"],
 };
 
@@ -66,6 +66,8 @@ export default function InvoicesPage() {
   const [items, setItems] = useState<LineItem[]>([{ ...emptyItem }]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [editing, setEditing] = useState<Invoice | null>(null);
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   async function fetchAll() {
     try {
@@ -86,6 +88,20 @@ export default function InvoicesPage() {
 
   useEffect(() => { fetchAll(); }, []);
 
+  function openEdit(inv: Invoice) {
+    setEditing(inv);
+    setClientId(inv.client ? clients.find(c => c.name === inv.client.name)?.id ?? "" : "");
+    setDueDate(new Date(inv.dueDate).toISOString().split("T")[0]);
+    setNotes(inv.notes ?? "");
+    setItems(inv.items.map(item => ({
+      description: item.description,
+      quantity: item.quantity,
+      unitPrice: Number(item.unitPrice),
+    })));
+    setError("");
+    setModalOpen(true);
+  }
+
   function openCreate() {
     setClientId(""); setDueDate(""); setNotes("");
     setItems([{ ...emptyItem }]); setError(""); setModalOpen(true);
@@ -104,13 +120,23 @@ export default function InvoicesPage() {
     e.preventDefault();
     setSaving(true);
     setError("");
-    const res = await fetch("/api/invoices", {
-      method: "POST",
+
+    const url = editing ? `/api/invoices/${editing.id}` : "/api/invoices";
+    const method = editing ? "PATCH" : "POST";
+    const res = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ clientId, dueDate, notes, items }),
     });
-    if (res.ok) { await fetchAll(); setModalOpen(false); }
-    else { const data = await res.json(); setError(data.error || "Something went wrong."); }
+
+    if (res.ok) {
+      await fetchAll();
+      setModalOpen(false);
+      setEditing(null);
+    } else {
+      const data = await res.json();
+      setError(data.error || "Something went wrong.");
+    }
     setSaving(false);
   }
 
@@ -127,6 +153,19 @@ export default function InvoicesPage() {
     if (!confirm("Delete this invoice?")) return;
     await fetch(`/api/invoices/${id}`, { method: "DELETE" });
     await fetchAll();
+  }
+
+  async function handleSend(id: string) {
+    if (!confirm("Send this invoice to the client by email?")) return;
+    setSendingId(id);
+    const res = await fetch(`/api/invoices/${id}/send`, { method: "POST" });
+    if (res.ok) {
+      await fetchAll();
+    } else {
+      const data = await res.json();
+      alert(data.error || "Failed to send email.");
+    }
+    setSendingId(null);
   }
 
   const filtered = filter === "ALL" ? invoices : invoices.filter((inv) => inv.status === filter);
@@ -173,11 +212,10 @@ export default function InvoicesPage() {
             <button
               key={s}
               onClick={() => setFilter(s)}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all ${
-                filter === s
-                  ? "bg-white dark:bg-slate-600 text-slate-900 dark:text-slate-100 shadow-sm ring-1 ring-slate-900/5 dark:ring-slate-500/20"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-600/50"
-              }`}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all ${filter === s
+                ? "bg-white dark:bg-slate-600 text-slate-900 dark:text-slate-100 shadow-sm ring-1 ring-slate-900/5 dark:ring-slate-500/20"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-600/50"
+                }`}
             >
               {s}
             </button>
@@ -273,6 +311,24 @@ export default function InvoicesPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => openEdit(inv)}
+                            className="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                            title="Edit Invoice"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleSend(inv.id)}
+                            disabled={sendingId === inv.id || inv.status === "PAID"}
+                            className="p-2 text-slate-400 dark:text-slate-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors disabled:opacity-30"
+                            title="Send to client"
+                          >
+                            {sendingId === inv.id
+                              ? <Loader2 size={16} className="animate-spin" />
+                              : <Mail size={16} />
+                            }
+                          </button>
                           <a
                             href={`/api/invoices/${inv.id}/pdf`}
                             target="_blank"
@@ -306,10 +362,10 @@ export default function InvoicesPage() {
               {/* Modal header */}
               <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-700">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                  Create New Invoice
+                  {editing ? "Edit Invoice" : "Create New Invoice"}
                 </h2>
                 <button
-                  onClick={() => setModalOpen(false)}
+                  onClick={() => { setModalOpen(false); setEditing(null); }}
                   className="p-2 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-300 rounded-full transition-colors"
                 >
                   <X size={20} />
@@ -451,7 +507,7 @@ export default function InvoicesPage() {
               <div className="px-6 py-5 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/30 flex justify-end gap-3 rounded-b-3xl">
                 <button
                   type="button"
-                  onClick={() => setModalOpen(false)}
+                  onClick={() => { setModalOpen(false); setEditing(null); }}
                   className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-600 transition-colors"
                 >
                   Cancel
@@ -465,13 +521,13 @@ export default function InvoicesPage() {
                   {saving && (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   )}
-                  {saving ? "Creating..." : "Save Invoice"}
+                  {saving ? "Saving..." : editing ? "Save Changes" : "Save Invoice"}
                 </button>
               </div>
             </div>
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }

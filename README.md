@@ -72,7 +72,7 @@ A modern, full-stack SaaS application for freelancers and growing businesses to 
 
 ```bash
 # Clone the repo
-git clone https://github.com/samwaseee/finflow.git
+git clone https://github.com/yourusername/finflow.git
 cd finflow
 
 # Install dependencies

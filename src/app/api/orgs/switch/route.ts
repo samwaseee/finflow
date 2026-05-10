@@ -29,6 +29,5 @@ export async function POST(req: Request) {
     path: "/",
     maxAge: 60 * 60 * 24 * 30,
   });
-  console.log("✅ Cookie set for orgId:", orgId);
   return response;
 }
